@@ -1,4 +1,4 @@
-// src/index.ts
+// src/client.ts
 import { v4, v5 } from "uuid";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import {
@@ -76,16 +76,17 @@ var QdrantDatabaseAdapter = class extends DatabaseAdapter {
       ids: params.id ? [params.id.toString()] : []
     });
     const results = rows.map((row) => {
-      const contentObj = typeof row.payload?.content === "string" ? JSON.parse(row.payload.content) : row.payload?.content;
+      var _a, _b, _c, _d;
+      const contentObj = typeof ((_a = row.payload) == null ? void 0 : _a.content) === "string" ? JSON.parse(row.payload.content) : (_b = row.payload) == null ? void 0 : _b.content;
       return {
         id: row.id.toString(),
-        agentId: row.payload?.agentId || "",
+        agentId: ((_c = row.payload) == null ? void 0 : _c.agentId) || "",
         content: {
           text: String(contentObj.text || ""),
           metadata: contentObj.metadata
         },
         embedding: row.vector ? Float32Array.from(row.vector) : void 0,
-        createdAt: row.payload?.createdAt
+        createdAt: (_d = row.payload) == null ? void 0 : _d.createdAt
       };
     });
     return results;
@@ -110,17 +111,18 @@ var QdrantDatabaseAdapter = class extends DatabaseAdapter {
       with_vector: true
     });
     const results = rows.map((row) => {
-      const contentObj = typeof row.payload?.content === "string" ? JSON.parse(row.payload.content) : row.payload?.content;
+      var _a, _b, _c, _d;
+      const contentObj = typeof ((_a = row.payload) == null ? void 0 : _a.content) === "string" ? JSON.parse(row.payload.content) : (_b = row.payload) == null ? void 0 : _b.content;
       elizaLogger.info("Qdrant adapter searchKnowledge  id:", row.id.toString());
       return {
         id: row.id.toString(),
-        agentId: row.payload?.agentId || "",
+        agentId: ((_c = row.payload) == null ? void 0 : _c.agentId) || "",
         content: {
           text: String(contentObj.text || ""),
           metadata: contentObj.metadata
         },
         embedding: row.vector ? Float32Array.from(row.vector) : void 0,
-        createdAt: row.payload?.createdAt,
+        createdAt: (_d = row.payload) == null ? void 0 : _d.createdAt,
         similarity: row.score || 0
       };
     });
@@ -264,9 +266,35 @@ var QdrantDatabaseAdapter = class extends DatabaseAdapter {
     return v5(id, this.qdrantV5UUIDNamespace);
   }
 };
-var index_default = QdrantDatabaseAdapter;
+var qdrantDatabaseAdapter = {
+  init: (runtime) => {
+    const QDRANT_URL = runtime.getSetting("QDRANT_URL");
+    const QDRANT_KEY = runtime.getSetting("QDRANT_KEY");
+    const QDRANT_PORT = runtime.getSetting("QDRANT_PORT");
+    const QDRANT_VECTOR_SIZE = runtime.getSetting("QDRANT_VECTOR_SIZE");
+    if (QDRANT_URL && QDRANT_KEY && QDRANT_PORT && QDRANT_VECTOR_SIZE) {
+      elizaLogger.info("Initializing Qdrant adapter...");
+      const db = new QdrantDatabaseAdapter(
+        QDRANT_URL,
+        QDRANT_KEY,
+        Number(QDRANT_PORT),
+        Number(QDRANT_VECTOR_SIZE)
+      );
+      return db;
+    } else {
+      throw new Error("QDRANT_URL, QDRANT_KEY, QDRANT_PORT, and QDRANT_VECTOR_SIZE are not set");
+    }
+  }
+};
+
+// src/index.ts
+var qdrantPlugin = {
+  name: "qdrant",
+  description: "Qdrant database adapter plugin",
+  adapters: [qdrantDatabaseAdapter]
+};
+var index_default = qdrantPlugin;
 export {
-  QdrantDatabaseAdapter,
   index_default as default
 };
 //# sourceMappingURL=index.js.map
